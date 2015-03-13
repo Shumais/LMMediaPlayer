@@ -234,8 +234,8 @@ static LMMediaPlayerView *sharedPlayerView;
 
 - (void)setupUserInterface
 {
-	UITapGestureRecognizer *gesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(reverseUserInterfaceHidden)];
-	[self addGestureRecognizer:gesture];
+//	UITapGestureRecognizer *gesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(reverseUserInterfaceHidden)];
+//	[self addGestureRecognizer:gesture];
 	LM_RELEASE(gesture);
 
 	artworkImageView_.contentMode = UIViewContentModeScaleAspectFit;

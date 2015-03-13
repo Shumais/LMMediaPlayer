@@ -18,7 +18,6 @@ NSString *const LMMediaPlayerStopNotification = @"LMMediaPlayerStopNotification"
 	NSMutableArray *queue_;
 
 	LMMediaPlaybackState playbackState_;
-	AVPlayer *player_;
 	id playerObserver_;
 }
 
@@ -46,7 +45,7 @@ static LMMediaPlayer *sharedPlayer;
 {
 	self = [super init];
 	if (self) {
-		player_ = [AVPlayer new];
+		self.player = [AVPlayer new];
 		queue_ = [NSMutableArray new];
 		self.currentQueue = queue_;
 		_repeatMode = LMMediaRepeatModeDefault;
@@ -67,7 +66,7 @@ static LMMediaPlayer *sharedPlayer;
 	[notificationCenter removeObserver:self name:LMMediaPlayerPauseNotification object:nil];
 	[notificationCenter removeObserver:self name:LMMediaPlayerStopNotification object:nil];
 	[notificationCenter removeObserver:self name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
-	LM_RELEASE(player_);
+	LM_RELEASE(self.player);
 	LM_RELEASE(queue_);
 	LM_RELEASE(_currentQueue);
 	LM_DEALLOC(super);
@@ -77,7 +76,7 @@ static LMMediaPlayer *sharedPlayer;
 
 - (AVPlayer *)corePlayer
 {
-	return player_;
+	return self.player;
 }
 
 - (void)pauseOtherPlayer
@@ -99,7 +98,7 @@ static LMMediaPlayer *sharedPlayer;
 - (void)playerItemDidReachEnd:(NSNotification *)notification
 {
 	AVPlayerItem *item = notification.object;
-	if (player_.currentItem == item) {
+	if (self.player.currentItem == item) {
 		[self playNextMedia];
 	}
 }
@@ -169,15 +168,15 @@ static LMMediaPlayer *sharedPlayer;
 		if (media != nil) {
 			NSURL *url = [media assetURL];
 			_nowPlayingItem = media;
-			[player_ removeTimeObserver:playerObserver_];
-			[player_ replaceCurrentItemWithPlayerItem:[AVPlayerItem playerItemWithURL:url]];
+			[self.player removeTimeObserver:playerObserver_];
+			[self.player replaceCurrentItemWithPlayerItem:[AVPlayerItem playerItemWithURL:url]];
 			[self play];
 			if ([self.delegate respondsToSelector:@selector(mediaPlayerDidStartPlaying:media:)]) {
 				[self.delegate mediaPlayerDidStartPlaying:self media:media];
 			}
-			player_.usesExternalPlaybackWhileExternalScreenIsActive = YES;
+			self.player.usesExternalPlaybackWhileExternalScreenIsActive = YES;
 			__block LMMediaPlayer *bself = self;
-			playerObserver_ = [player_ addPeriodicTimeObserverForInterval:CMTimeMake(1, 1) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+			playerObserver_ = [self.player addPeriodicTimeObserverForInterval:CMTimeMake(1, 1) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
 				if ([bself.delegate respondsToSelector:@selector(mediaPlayerDidChangeCurrentTime:)]) {
 					[bself.delegate mediaPlayerDidChangeCurrentTime:bself];
 				}
@@ -189,13 +188,13 @@ static LMMediaPlayer *sharedPlayer;
 - (void)play
 {
 	if (playbackState_ == LMMediaPlaybackStateStopped) {
-		[player_ seekToTime:CMTimeMake(0, 1)];
+		[self.player seekToTime:CMTimeMake(0, 1)];
 	}
 	if (_nowPlayingItem == nil) {
 		[self playMedia:self.currentQueue.firstObject];
 	}
 	else {
-		[player_ play];
+		[self.player play];
 	}
 
 	[self setCurrentState:LMMediaPlaybackStatePlaying];
@@ -209,7 +208,7 @@ static LMMediaPlayer *sharedPlayer;
 
 - (void)stop
 {
-	[player_ pause];
+	[self.player pause];
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
 	[self setCurrentState:LMMediaPlaybackStateStopped];
 	if ([self.delegate respondsToSelector:@selector(mediaPlayerDidStop:media:)]) {
@@ -220,7 +219,7 @@ static LMMediaPlayer *sharedPlayer;
 
 - (void)pause
 {
-	[player_ pause];
+	[self.player pause];
 	[self setCurrentState:LMMediaPlaybackStatePaused];
 }
 
@@ -306,17 +305,17 @@ static LMMediaPlayer *sharedPlayer;
 
 - (NSTimeInterval)currentPlaybackTime
 {
-	return player_.currentTime.value == 0 ? 0 : player_.currentTime.value / player_.currentTime.timescale;
+	return self.player.currentTime.value == 0 ? 0 : self.player.currentTime.value / self.player.currentTime.timescale;
 }
 
 - (NSTimeInterval)currentPlaybackDuration
 {
-	return CMTimeGetSeconds([[player_.currentItem asset] duration]);
+	return CMTimeGetSeconds([[self.player.currentItem asset] duration]);
 }
 
 - (void)seekTo:(NSTimeInterval)time
 {
-	[player_ seekToTime:CMTimeMake(time, 1)];
+	[self.player seekToTime:CMTimeMake(time, 1)];
 }
 
 - (void)setShuffleEnabled:(BOOL)enabled
@@ -369,7 +368,7 @@ static LMMediaPlayer *sharedPlayer;
 
 - (UIImage *)thumbnailAtTime:(CGFloat)time
 {
-	AVAssetImageGenerator *imageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:[[player_ currentItem] asset]];
+	AVAssetImageGenerator *imageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:[[self.player currentItem] asset]];
 	imageGenerator.appliesPreferredTrackTransform = YES;
 	NSError *error = NULL;
 	CMTime ctime = CMTimeMake(time, 1);
